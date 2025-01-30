@@ -1,0 +1,3 @@
+-keep class org.tensorflow.lite.** { *; }
+-keep class com.google.android.gms.tasks.** { *; }
+-dontwarn org.tensorflow.lite.gpu.**
