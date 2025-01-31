@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 
@@ -43,11 +42,8 @@ class ServiceDogScreen extends StatefulWidget {
 
 class _ServiceDogScreenState extends State<ServiceDogScreen> {
   CameraController? _cameraController;
-  final _audioRecorder = AudioRecorder();
   bool _isCameraInitialized = false;
   bool _hasPermissions = false;
-  bool _isRecording = false;
-  String? _currentRecordingPath;
 
   @override
   void initState() {
@@ -58,10 +54,9 @@ class _ServiceDogScreenState extends State<ServiceDogScreen> {
 
   Future<void> _checkPermissions() async {
     final camera = await Permission.camera.request();
-    final microphone = await Permission.microphone.request();
     
     setState(() {
-      _hasPermissions = camera.isGranted && microphone.isGranted;
+      _hasPermissions = camera.isGranted;
     });
   }
 
@@ -71,7 +66,6 @@ class _ServiceDogScreenState extends State<ServiceDogScreen> {
     _cameraController = CameraController(
       widget.cameras.first,
       ResolutionPreset.medium,
-      enableAudio: true,
       imageFormatGroup: ImageFormatGroup.bgra8888,
     );
 
@@ -90,36 +84,9 @@ class _ServiceDogScreenState extends State<ServiceDogScreen> {
     }
   }
 
-  Future<String> _getRecordingPath() async {
-    final directory = await getApplicationDocumentsDirectory();
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
-    return '${directory.path}/recording_$timestamp.m4a';
-  }
-
-  Future<void> _toggleRecording() async {
-    try {
-      if (_isRecording) {
-        await _audioRecorder.stop();
-        _currentRecordingPath = null;
-      } else {
-        _currentRecordingPath = await _getRecordingPath();
-        await _audioRecorder.start(
-          const RecordConfig(encoder: AudioEncoder.aacLc),
-          path: _currentRecordingPath!,
-        );
-      }
-      setState(() {
-        _isRecording = !_isRecording;
-      });
-    } catch (e) {
-      debugPrint('Error toggling recording: $e');
-    }
-  }
-
   @override
   void dispose() {
     _cameraController?.dispose();
-    _audioRecorder.dispose();
     super.dispose();
   }
 
@@ -131,7 +98,7 @@ class _ServiceDogScreenState extends State<ServiceDogScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text('Camera and microphone permissions are required'),
+              const Text('Camera permissions are required'),
               ElevatedButton(
                 onPressed: _checkPermissions,
                 child: const Text('Grant Permissions'),
@@ -165,10 +132,6 @@ class _ServiceDogScreenState extends State<ServiceDogScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                IconButton.filled(
-                  onPressed: _toggleRecording,
-                  icon: Icon(_isRecording ? Icons.stop : Icons.mic),
-                ),
                 IconButton.filled(
                   onPressed: () {
                     // TODO: Toggle camera processing
